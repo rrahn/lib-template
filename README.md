@@ -1,4 +1,4 @@
-# SeqAn3 App Template [![build status][1]][2] [![codecov][3]][4]
+# SeqAn3 Lib Template [![build status][1]][2] [![codecov][3]][4]
 <!--
     Above uses reference-style links with numbers.
     See also https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet#links.
@@ -49,22 +49,24 @@
 -->
 [4]: https://codecov.io/gh/seqan/app-template
 
-This is a template for app developers with SeqAn3.
+This is a library template for SeqAn developers contributing new algorithms or data structures to the SeqAn project.
 You can easily clone this repository and modify the existing code to your needs.
-It provides the elementary set-up for all SeqAn3 applications.
+It provides the elementary set-up for all SeqAn3 libraries in order to provide a consistent infrastructure.
 
-The example application is a FastQ to FastA file format converter.
-It demonstrates exemplarily the set-up of test cases, documentation, and build infrastructure.
-Probably you want to name your app differently — simply replace `app-template` with your app name in the following.
-Please note that the command line interface tests fail if you use an individual project name without adapting the
-name in the test file.
+After cloning this repository, please rename all instances of `lib_template` with the respective project name `<project_name>`.
+Note that for the SeqAn project we only accept header-only files.
 
 Instructions:
-1. clone this repository: `git clone --recurse-submodules https://github.com/seqan/app-template.git app-template`
-2. edit the project name in the *project* command of `app-template/CMakeLists.txt`
-3. create a build directory and visit it: `mkdir build && cd build`
-4. run cmake: `cmake ../app-template`
-5. build the application: `make`
-6. optional: build and run the tests: `make test`
-7. optional: build the api documentation: `make doc`
-8. execute the app: `./bin/app-template`
+1. clone this repository: `git clone --recurse-submodules https://github.com/seqan/lib_template.git lib_template`
+2. edit the project name in the *project* command of `CMakeLists.txt`
+3. rename all `lib_template` occurrences in `include/CMakeLists.txt` with your project name.
+4. create a build directory and visit it: `mkdir build && cd build`
+5. run cmake: `cmake ../<project_name>/test/unit`
+6. build the application: `make`
+7. execute the unit tests: `./unit/<project_name>`
+
+Library structure:
+1. doc: Contains the infrastructure necessary to build the API documentation
+2. include: Contains the header files for your project.
+3. submodule: External git submodules this library depends on.
+3. test: The test directory containing a separate module for unit tests, benchmark tests, coverage tests, test data, header tests, and a cmake directory containing additional cmake files.
