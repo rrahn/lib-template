@@ -30,6 +30,7 @@ option (LIB_TEMPLATE_BENCHMARK_ALIGN_LOOPS "Pass -falign-loops=32 to the benchma
 # Paths to folders.
 # ----------------------------------------------------------------------------
 
+find_path (SEQAN3_TEST_INCLUDE_DIR NAMES seqan3/test/tmp_filename.hpp HINTS "${CMAKE_CURRENT_LIST_DIR}/../../lib/seqan3/test/include/")
 find_path (LIB_TEMPLATE_TEST_CMAKE_MODULE_DIR NAMES seqan3_test_component.cmake HINTS "${CMAKE_CURRENT_LIST_DIR}/../../lib/seqan3/test/cmake/")
 list(APPEND CMAKE_MODULE_PATH "${LIB_TEMPLATE_TEST_CMAKE_MODULE_DIR}")
 
@@ -47,46 +48,63 @@ file(MAKE_DIRECTORY ${SEQAN3_TEST_CLONE_DIR}/googletest/include/)
 
 # seqan::lib_template::test exposes a base set of required flags, includes, definitions and
 # libraries which are in common for **all** lib_template tests
-add_library (lib_template_test INTERFACE)
-target_compile_options (lib_template_test INTERFACE "-pedantic"  "-Wall" "-Wextra" "-Werror")
-target_link_libraries (lib_template_test INTERFACE "seqan::lib_template" "pthread")
-target_include_directories (lib_template_test INTERFACE "${LIB_TEMPLATE_TEST_INCLUDE_DIR}")
-add_library (seqan::lib_template::test ALIAS lib_template_test)
+if (NOT TARGET seqan::lib_template::test)
+    add_library (lib_template_test INTERFACE)
+    target_compile_options (lib_template_test INTERFACE "-pedantic"  "-Wall" "-Wextra" "-Werror")
+    target_link_libraries (lib_template_test INTERFACE "seqan::lib_template" "pthread")
+    target_include_directories (lib_template_test INTERFACE "${SEQAN3_TEST_INCLUDE_DIR}")
+    add_library (seqan::lib_template::test ALIAS lib_template_test)
+endif ()
 
 # lib_template::test::performance specifies required flags, includes and libraries
 # needed for performance test cases in lib_template/test/performance
-add_library (lib_template_test_performance INTERFACE)
-target_link_libraries (lib_template_test_performance INTERFACE "seqan::lib_template::test" "gbenchmark")
+if (NOT TARGET seqan::lib_template::test::performance)
+    add_library (lib_template_test_performance INTERFACE)
+    target_link_libraries (lib_template_test_performance INTERFACE "seqan::lib_template::test" "gbenchmark")
 
-if (LIB_TEMPLATE_BENCHMARK_ALIGN_LOOPS)
-    target_compile_options (lib_template_test_performance INTERFACE "-falign-loops=32")
+    if (LIB_TEMPLATE_BENCHMARK_ALIGN_LOOPS)
+        target_compile_options (lib_template_test_performance INTERFACE "-falign-loops=32")
+    endif ()
+
+    add_library (seqan::lib_template::test::performance ALIAS lib_template_test_performance)
 endif ()
-
-target_include_directories (lib_template_test_performance INTERFACE "${SEQAN3_BENCHMARK_CLONE_DIR}/include/")
-add_library (seqan::lib_template::test::performance ALIAS lib_template_test_performance)
 
 # lib_template::test::unit specifies required flags, includes and libraries
 # needed for unit test cases in lib_template/test/unit
-add_library (lib_template_test_unit INTERFACE)
-target_link_libraries (lib_template_test_unit INTERFACE "seqan::lib_template::test" "gtest_main" "gtest")
-target_include_directories (lib_template_test_unit INTERFACE "${SEQAN3_TEST_CLONE_DIR}/googletest/include/")
-add_library (seqan::lib_template::test::unit ALIAS lib_template_test_unit)
+if (NOT TARGET seqan::lib_template::test::unit)
+    add_library (lib_template_test_unit INTERFACE)
+    target_link_libraries (lib_template_test_unit INTERFACE "seqan::lib_template::test" "gtest_main" "gtest")
+    add_library (seqan::lib_template::test::unit ALIAS lib_template_test_unit)
+endif ()
 
 # lib_template::test::coverage specifies required flags, includes and libraries
 # needed for coverage test cases in lib_template/test/coverage
-add_library (lib_template_test_coverage INTERFACE)
-target_compile_options (lib_template_test_coverage INTERFACE "--coverage" "-fprofile-arcs" "-ftest-coverage")
-target_link_libraries (lib_template_test_coverage INTERFACE "seqan::lib_template::test::unit" "gcov")
-add_library (seqan::lib_template::test::coverage ALIAS lib_template_test_coverage)
+if (NOT TARGET seqan::lib_template::test::coverage)
+    add_library (lib_template_test_coverage INTERFACE)
+    target_compile_options (lib_template_test_coverage INTERFACE "--coverage" "-fprofile-arcs" "-ftest-coverage")
+    # -fprofile-abs-path requires at least gcc8, it forces gcov to report absolute instead of relative paths.
+    # gcovr has trouble detecting the headers otherwise.
+    # ccache is not aware of this option, so it needs to be skipped with `--ccache-skip`.
+    find_program (CCACHE_PROGRAM ccache)
+    if (CCACHE_PROGRAM)
+        target_compile_options (lib_template_test_coverage INTERFACE "--ccache-skip" "-fprofile-abs-path")
+    else ()
+        target_compile_options (lib_template_test_coverage INTERFACE "-fprofile-abs-path")
+    endif ()
+    target_link_libraries (lib_template_test_coverage INTERFACE "seqan::lib_template::test::unit" "gcov")
+    add_library (seqan::lib_template::test::coverage ALIAS lib_template_test_coverage)
+endif ()
 
 # lib_template::test::header specifies required flags, includes and libraries
 # needed for header test cases in lib_template/test/header
-add_library (lib_template_test_header INTERFACE)
-target_link_libraries (lib_template_test_header INTERFACE "seqan::lib_template::test::unit")
-target_link_libraries (lib_template_test_header INTERFACE "seqan::lib_template::test::performance")
-target_compile_definitions (lib_template_test_header INTERFACE -DLIB_TEMPLATE_DISABLE_DEPRECATED_WARNINGS)
-target_compile_definitions (lib_template_test_header INTERFACE -DLIB_TEMPLATE_HEADER_TEST)
-add_library (seqan::lib_template::test::header ALIAS lib_template_test_header)
+if (NOT TARGET seqan::lib_template::test::header)
+    add_library (lib_template_test_header INTERFACE)
+    target_link_libraries (lib_template_test_header INTERFACE "seqan::lib_template::test::unit")
+    target_link_libraries (lib_template_test_header INTERFACE "seqan::lib_template::test::performance")
+    target_compile_definitions (lib_template_test_header INTERFACE -DLIB_TEMPLATE_DISABLE_DEPRECATED_WARNINGS)
+    target_compile_definitions (lib_template_test_header INTERFACE -DLIB_TEMPLATE_HEADER_TEST)
+    add_library (seqan::lib_template::test::header ALIAS lib_template_test_header)
+endif ()
 
 # ----------------------------------------------------------------------------
 # Commonly shared options for external projects.
